@@ -30,7 +30,7 @@ generator = metric3d_inference_generator()
 @app.route("/inference/<string:version>", methods=['POST'])
 def run_inference(version: str):
     """
-    flask --app wsgi run --host-0.0.0.0
+    flask --app wsgi run --host=0.0.0.0
     
     """
     
