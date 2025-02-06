@@ -1,2 +1,2 @@
 # Metric3DAPI
-A small flask application that provides an endpoint for Metric3D depth estimation.,
+A lightweight flask application that provides an endpoint that accepts images, runs Metric3D's monocular depth estimation, and returns the depth map.
