@@ -31,7 +31,7 @@ generator = metric3d_inference_generator()
 def run_inference(version: str):
     """
     flask --app wsgi run --host=0.0.0.0
-    
+    gunicorn --bind 0.0.0.0:5000 wsgi:app
     """
     
     if version not in MODEL_OPTIONS:
