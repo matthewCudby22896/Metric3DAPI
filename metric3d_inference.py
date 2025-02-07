@@ -11,6 +11,8 @@ MODEL_VERSIONS = {
 
 TORCH_HUB_USER = 'yvanyin/metric3d'
 
+PADDING_CLR = [123.675, 116.28, 103.53]
+
 class metric3d_inference_generator:
     def __init__(self):
         self.model_small = None
@@ -27,7 +29,7 @@ class metric3d_inference_generator:
             raise ValueError(f"Unkown version: {version}")
         
         if version not in self.models:
-            self.models[version] = torch.hub.load(TORCH_HUB_USER, MODEL_VERSIONS[version], pretrain=True)
+            self.models[version] = torch.hub.load(TORCH_HUB_USER, MODEL_VERSIONS[version], pretrain=True).to('cuda')
         
         return self.models[version]
     

@@ -1,10 +1,12 @@
-from flask import Flask, request, jsonify, Response
+from flask import Flask, request, jsonify, send_file
 from markupsafe import escape
 from metric3d_inference import metric3d_inference_generator
 import numpy as np
 import cv2
 import logging
 import time
+from numpy.typing import NDArray
+import io
 
 # Basic logger definition
 logging.basicConfig(
@@ -33,7 +35,6 @@ def run_inference(version: str):
     flask --app wsgi run --host=0.0.0.0
     gunicorn --bind 0.0.0.0:5000 wsgi:app
     """
-    
     if version not in MODEL_OPTIONS:
         return f"version={escape(version)} is not one of the available options {list(MODEL_OPTIONS.keys())}", 400
     
@@ -48,16 +49,25 @@ def run_inference(version: str):
     
     # Run inference (Metric3D)
     start = time.time()
-    depth_estimation : np.ndarray = generator.estimate_depth(org_rgb=img, version=version)
+    depth_estimation : NDArray[np.float32] = generator.estimate_depth(org_rgb=img, version=version)
     time_elapsed = time.time() - start
     logger.info(f"Metric3D version='{version}' inference took {time_elapsed} seconds")
     
-    # Normalise
-    depth_estimation = ((depth_estimation / np.max(depth_estimation)) * 255).astype(np.uint8)
+    # Create an in-memory buffer
+    buffer = io.BytesIO()
     
-    # Encode numpy array as a png image
-    _, buffer = cv2.imencode('.png', depth_estimation)
-    image_bytes = buffer.tobytes()
+    # Load the np array into the buffer
+    np.save(buffer, depth_estimation)
+    # Move stream position to the start of the buffer s.t. it can be read
+    buffer.seek(0)
+    
+    return send_file(
+        buffer, 
+        mimetype="application/octet-stream",
+        as_attachment=True,
+        download_name="depth_map.npy"
+        )
+    
     
 
 
