@@ -23,6 +23,9 @@ logger = logging.getLogger(__name__)
 
 models = {}
 
+if not torch.cuda.is_available():
+    raise Exception(f"cuda not available!")
+
 def _get_model(version : str):
     if version not in MODEL_VERSIONS:
         raise ValueError(f"Unkown version: {version}")
@@ -35,6 +38,8 @@ def _get_model(version : str):
 
 def estimate_depth(version : str, org_rgb : Image, focal_length_px : float) -> np.ndarray:
     model : torch.nn.Module = _get_model(version)
+        
+    logger.info(f"{org_rgb.shape=}")
     
     h, w = org_rgb.shape[:2]
     intrinsic = [focal_length_px, focal_length_px, w // 2, h // 2] # (f_x, f_y, px, py)
@@ -75,6 +80,7 @@ def estimate_depth(version : str, org_rgb : Image, focal_length_px : float) -> n
     
     # upsample to original size
     pred_depth = torch.nn.functional.interpolate(pred_depth[None, None, :, :], org_rgb.shape[:2], mode='bilinear').squeeze()
+    
     ###################### canonical camera space ######################
 
     #### de-canonical transform
