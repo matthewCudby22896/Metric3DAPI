@@ -31,6 +31,7 @@ def _get_model(version : str):
         raise ValueError(f"Unkown version: {version}")
     
     if version not in models:
+        logger.info(f"loading model...")
         models[version] = torch.hub.load(TORCH_HUB_USER, MODEL_VERSIONS[version], pretrain=True)
     
     return models[version]
