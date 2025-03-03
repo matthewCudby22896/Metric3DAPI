@@ -46,7 +46,10 @@ def run_inference(version: str):
     focal_length = json_data.get('focal_length', None)
     if focal_length is None:
         return jsonify({'error' : 'No focal_length in request body'}), 400
-
+    
+    logger.info(f"{focal_length=}")
+    logger.info(f"{version=}")
+    
     # Access and decode the sent image intoan OpenCV format
     image_bytes = request.files['image'].read() # byte file
     npimg = np.frombuffer(image_bytes, np.uint8) # convert bytes into a numpy array
