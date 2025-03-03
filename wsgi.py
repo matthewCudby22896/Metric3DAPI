@@ -1,10 +1,11 @@
-from flask import Flask, request, jsonify, Response
+from flask import Flask, request, jsonify, send_file
 from markupsafe import escape
-from metric3d_inference import metric3d_inference_generator
+import io
+import metric3d_inference
 import numpy as np
 import cv2
 import logging
-import time
+from metric3d_inference import Image
 
 # Basic logger definition
 logging.basicConfig(
@@ -25,8 +26,6 @@ MODEL_OPTIONS = {
     'giant' : 'metric3d_vit_giant2',
 }
 
-generator = metric3d_inference_generator()
-
 @app.route("/inference/<string:version>", methods=['POST'])
 def run_inference(version: str):
     """
@@ -38,26 +37,26 @@ def run_inference(version: str):
         return f"version={escape(version)} is not one of the available options {list(MODEL_OPTIONS.keys())}", 400
     
     if 'image' not in request.files:
-        return jsonify({'error' : 'No image in the request'})
+        return jsonify({'error' : 'No image in the request'}), 400
+    
+    # Extract the request body
+    json_data : dict = request.form.to_dict()
+    
+    # Attempt to extract focal length from the request body
+    focal_length = json_data.get('focal_length', None)
+    if focal_length is None:
+        return jsonify({'error' : 'No focal_length in request body'}), 400
 
+    # Access and decode the sent image intoan OpenCV format
     image_bytes = request.files['image'].read() # byte file
-    
     npimg = np.frombuffer(image_bytes, np.uint8) # convert bytes into a numpy array
-    
-    img = cv2.imdecode(npimg, cv2.IMREAD_COLOR) # converts into format that opencv can process
-    
-    # Run inference (Metric3D)
-    start = time.time()
-    depth_estimation : np.ndarray = generator.estimate_depth(org_rgb=img, version=version)
-    time_elapsed = time.time() - start
-    logger.info(f"Metric3D version='{version}' inference took {time_elapsed} seconds")
-    
-    # Normalise
-    depth_estimation = ((depth_estimation / np.max(depth_estimation)) * 255).astype(np.uint8)
-    
-    # Encode numpy array as a png image
-    _, buffer = cv2.imencode('.png', depth_estimation)
-    image_bytes = buffer.tobytes()
-    
+    img : Image = cv2.imdecode(npimg, cv2.IMREAD_COLOR) # converts into format that opencv can process
 
+    depth_map = metric3d_inference.estimate_depth(version, org_rgb=img, focal_length_px=focal_length)
+    
+    # Save depth map to a binary buffer
+    buffer = io.BytesIO()
+    np.save(buffer, depth_map)
+    buffer.seek(0)  # Move to the beginning of the buffer
 
+    return send_file(buffer, as_attachment=True, download_name='depth_map.npy', mimetype='application/octet-stream')
