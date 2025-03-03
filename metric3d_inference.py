@@ -30,7 +30,7 @@ def _get_model(version : str):
     if version not in models:
         models[version] = torch.hub.load(TORCH_HUB_USER, MODEL_VERSIONS[version], pretrain=True)
     
-    return self.models[version]
+    return models[version]
 
 
 def estimate_depth(version : str, org_rgb : Image, focal_length_px : float) -> np.ndarray:
