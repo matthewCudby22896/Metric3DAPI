@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 models = {}
 
-def _get_model(self, version : str):
+def _get_model(version : str):
     if version not in MODEL_VERSIONS:
         raise ValueError(f"Unkown version: {version}")
     
